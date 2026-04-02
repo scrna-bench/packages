@@ -204,6 +204,11 @@ jobs:
         shell: bash
         run: |
           echo "Requesting OIDC token from GitHub Actions..."
+          echo "Audience: prefix.dev"
+          echo "Repository: ${{ github.repository }}"
+          echo "Workflow: ${{ github.workflow }}"
+          echo "Ref: ${{ github.ref }}"
+          
           OIDC_TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=prefix.dev" | jq -r '.value')
           
@@ -213,6 +218,12 @@ jobs:
           fi
           
           echo "✅ OIDC token acquired successfully"
+          echo "Token length: ${#OIDC_TOKEN}"
+          
+          # Decode token header and payload for debugging (without signature)
+          echo "Token claims:"
+          echo "$OIDC_TOKEN" | cut -d'.' -f2 | base64 -d 2>/dev/null | jq . || echo "Could not decode token"
+          
           echo "token=$OIDC_TOKEN" >> $GITHUB_OUTPUT
 
       - name: Upload to prefix.dev
@@ -220,6 +231,10 @@ jobs:
         env:
           PREFIX_API_KEY: ${{ steps.oidc-token.outputs.token }}
         run: |
+          echo "Uploading with OIDC authentication..."
+          echo "Token is set: $([ -n "$PREFIX_API_KEY" ] && echo 'yes' || echo 'no')"
+          echo "Channel: almost-conductor"
+          
           # Find all package files
           PACKAGES=$(find artifacts/ -type f \( -name "*.conda" -o -name "*.tar.bz2" \))
           
