@@ -1,0 +1,62 @@
+# Build outputs
+output/
+build/
+dist/
+*.conda
+*.tar.bz2
+
+# rattler-build cache and work directories
+.rattler-build/
+work/
+bld/
+src_cache/
+
+# Test environments
+test/
+test-env/
+clean-test/
+*/pixi.lock
+*/.pixi/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# R
+.Rhistory
+.RData
+.Rproj.user
+*.Rproj
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS
+Thumbs.db
+.directory
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Local configuration
+.env
+.envrc

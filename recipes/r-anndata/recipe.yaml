@@ -1,0 +1,65 @@
+context:
+  name: r-anndata
+  version: "1.1.2"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://bioconductor.org/packages/3.23/bioc/src/contrib/anndataR_${{ version }}.tar.gz
+  sha256: 4bc3d26d57af3b535d706f6424ce164aa592a5074bc2d61c7ae75fc0145d731b
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - R CMD INSTALL --build .
+
+requirements:
+  host:
+    - r-base >=4.5.0
+    - r-cli
+    - r-lifecycle
+    - r-matrix
+    - r-purrr
+    - r-r6 >=2.4.0
+    - r-reticulate >=1.41.1
+    - r-rlang
+  run:
+    - r-base >=4.5.0
+    - r-cli
+    - r-lifecycle
+    - r-matrix
+    - r-purrr
+    - r-r6 >=2.4.0
+    - r-reticulate >=1.41.1
+    - r-rlang
+
+tests:
+  - r:
+      libraries:
+        - anndataR
+  - script:
+    - Rscript -e "library('anndataR'); packageVersion('anndataR')"
+
+about:
+  homepage: https://anndataR.scverse.org/
+  summary: AnnData interoperability in R
+  description: |
+    Bring the power and flexibility of AnnData to the R ecosystem, allowing
+    you to effortlessly manipulate and analyse your single-cell data. This
+    package lets you work with backed h5ad and zarr files, directly access
+    various slots (e.g. X, obs, var), or convert the data into
+    SingleCellExperiment and Seurat objects.
+  license: MIT
+  license_file: LICENSE
+  repository: https://github.com/scverse/anndataR
+  documentation: https://anndataR.scverse.org/
+
+extra:
+  recipe-maintainers:
+    - btraven00
+  bioconductor:
+    package: anndataR
+    version: 3.23

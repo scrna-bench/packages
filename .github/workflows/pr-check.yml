@@ -1,0 +1,313 @@
+name: PR Validation
+
+on:
+  pull_request:
+    paths:
+      - 'recipes/**'
+      - '.github/workflows/pr-check.yml'
+  workflow_dispatch:
+
+env:
+  RATTLER_BUILD_VERSION: "0.16.0"
+
+jobs:
+  validate-recipes:
+    name: Validate Recipe Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install validation tools
+        run: |
+          pip install pyyaml jsonschema
+
+      - name: Get changed recipes
+        id: changed-recipes
+        run: |
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '^recipes/' || true)
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No recipe changes detected"
+            echo "recipes=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          RECIPES=$(echo "$CHANGED_FILES" | cut -d'/' -f2 | sort -u | tr '\n' ' ')
+          echo "recipes=$RECIPES" >> $GITHUB_OUTPUT
+          echo "Changed recipes: $RECIPES"
+
+      - name: Validate recipe.yaml files
+        if: steps.changed-recipes.outputs.recipes != ''
+        run: |
+          python - <<'EOF'
+          import yaml
+          import sys
+          import os
+          from pathlib import Path
+          
+          recipes = "${{ steps.changed-recipes.outputs.recipes }}".split()
+          errors = []
+          
+          for recipe in recipes:
+              recipe_file = Path("recipes") / recipe / "recipe.yaml"
+              if not recipe_file.exists():
+                  errors.append(f"❌ {recipe}: recipe.yaml not found")
+                  continue
+              
+              try:
+                  with open(recipe_file) as f:
+                      data = yaml.safe_load(f)
+                  
+                  # Check required fields
+                  required_fields = ['package', 'source', 'build', 'about']
+                  for field in required_fields:
+                      if field not in data:
+                          errors.append(f"❌ {recipe}: missing required field '{field}'")
+                  
+                  # Check package metadata
+                  if 'package' in data:
+                      if 'name' not in data['package']:
+                          errors.append(f"❌ {recipe}: package.name is required")
+                      if 'version' not in data['package']:
+                          errors.append(f"❌ {recipe}: package.version is required")
+                  
+                  # Check about metadata
+                  if 'about' in data:
+                      if 'license' not in data['about']:
+                          errors.append(f"⚠️  {recipe}: about.license is recommended")
+                      if 'summary' not in data['about']:
+                          errors.append(f"⚠️  {recipe}: about.summary is recommended")
+                  
+                  # Check if source has checksum
+                  if 'source' in data and isinstance(data['source'], dict):
+                      if 'url' in data['source'] and 'sha256' not in data['source'] and 'md5' not in data['source']:
+                          errors.append(f"⚠️  {recipe}: source URL should have sha256 or md5 checksum")
+                  
+                  print(f"✅ {recipe}: Valid recipe.yaml")
+                  
+              except yaml.YAMLError as e:
+                  errors.append(f"❌ {recipe}: YAML syntax error: {e}")
+              except Exception as e:
+                  errors.append(f"❌ {recipe}: Validation error: {e}")
+          
+          if errors:
+              print("\n⚠️  Validation Issues:")
+              for error in errors:
+                  print(error)
+              
+              # Only fail on critical errors (❌), not warnings (⚠️)
+              critical_errors = [e for e in errors if e.startswith("❌")]
+              if critical_errors:
+                  sys.exit(1)
+          
+          print("\n✅ All recipes passed validation!")
+          EOF
+
+      - name: Check for license files
+        if: steps.changed-recipes.outputs.recipes != ''
+        run: |
+          for recipe in ${{ steps.changed-recipes.outputs.recipes }}; do
+            if [ -f "recipes/$recipe/LICENSE" ] || [ -f "recipes/$recipe/LICENSE.txt" ]; then
+              echo "✅ $recipe: License file found"
+            else
+              echo "⚠️  $recipe: No license file found (this is OK if license comes from source)"
+            fi
+          done
+
+  lint-recipes:
+    name: Lint Recipes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed recipes
+        id: changed-recipes
+        run: |
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '^recipes/' || true)
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "recipes=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          RECIPES=$(echo "$CHANGED_FILES" | cut -d'/' -f2 | sort -u | tr '\n' ' ')
+          echo "recipes=$RECIPES" >> $GITHUB_OUTPUT
+
+      - name: Check recipe naming conventions
+        if: steps.changed-recipes.outputs.recipes != ''
+        run: |
+          errors=0
+          for recipe in ${{ steps.changed-recipes.outputs.recipes }}; do
+            # Recipe directory should be lowercase with hyphens
+            if [[ "$recipe" =~ [A-Z_] ]]; then
+              echo "⚠️  $recipe: Recipe directory should use lowercase with hyphens (not underscores or capitals)"
+              errors=1
+            fi
+            
+            # Check for common files
+            if [ -f "recipes/$recipe/build.sh" ]; then
+              echo "✅ $recipe: Has build.sh script"
+            fi
+            
+            if [ -f "recipes/$recipe/meta.yaml" ]; then
+              echo "❌ $recipe: Found meta.yaml - this repo uses recipe.yaml (rattler-build format)"
+              errors=1
+            fi
+          done
+          
+          exit $errors
+
+  build-test:
+    name: Build Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Pixi
+        uses: prefix-dev/setup-pixi@v0.5.0
+        with:
+          pixi-version: latest
+
+      - name: Install rattler-build
+        run: |
+          pixi global install rattler-build==${{ env.RATTLER_BUILD_VERSION }}
+
+      - name: Get changed recipes
+        id: changed-recipes
+        run: |
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '^recipes/' || true)
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "recipes=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          RECIPES=$(echo "$CHANGED_FILES" | cut -d'/' -f2 | sort -u | tr '\n' ' ')
+          echo "recipes=$RECIPES" >> $GITHUB_OUTPUT
+          echo "Will test build for: $RECIPES"
+
+      - name: Test build recipes
+        if: steps.changed-recipes.outputs.recipes != ''
+        run: |
+          mkdir -p output
+          success_count=0
+          failure_count=0
+          
+          for recipe in ${{ steps.changed-recipes.outputs.recipes }}; do
+            echo "::group::Building $recipe"
+            if rattler-build build --recipe recipes/$recipe/recipe.yaml --output-dir output; then
+              echo "✅ $recipe: Build successful"
+              success_count=$((success_count + 1))
+            else
+              echo "❌ $recipe: Build failed"
+              failure_count=$((failure_count + 1))
+            fi
+            echo "::endgroup::"
+          done
+          
+          echo ""
+          echo "📊 Build Summary:"
+          echo "  ✅ Successful: $success_count"
+          echo "  ❌ Failed: $failure_count"
+          
+          if [ $failure_count -gt 0 ]; then
+            echo ""
+            echo "❌ Some builds failed. Please fix the issues and try again."
+            exit 1
+          fi
+          
+          echo ""
+          echo "✅ All builds successful!"
+
+      - name: Upload build artifacts
+        if: steps.changed-recipes.outputs.recipes != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-build-packages
+          path: output/
+          retention-days: 7
+
+  comment-summary:
+    name: PR Summary
+    needs: [validate-recipes, lint-recipes, build-test]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Create PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const validation = '${{ needs.validate-recipes.result }}';
+            const lint = '${{ needs.lint-recipes.result }}';
+            const build = '${{ needs.build-test.result }}';
+            
+            const statusIcon = (status) => {
+              switch(status) {
+                case 'success': return '✅';
+                case 'failure': return '❌';
+                case 'skipped': return '⏭️';
+                default: return '⏳';
+              }
+            };
+            
+            const body = `
+            ## 🔍 Recipe Validation Summary
+            
+            | Check | Status |
+            |-------|--------|
+            | Recipe Format Validation | ${statusIcon(validation)} ${validation} |
+            | Linting | ${statusIcon(lint)} ${lint} |
+            | Build Test | ${statusIcon(build)} ${build} |
+            
+            ${build === 'success' ? '✅ All checks passed! This PR is ready for review.' : ''}
+            ${build === 'failure' ? '❌ Some checks failed. Please review the logs above and fix the issues.' : ''}
+            
+            ---
+            
+            <details>
+            <summary>📚 Next Steps</summary>
+            
+            - If checks pass, a maintainer will review your PR
+            - Once approved and merged, packages will be built and published to prefix.dev
+            - You can download build artifacts from the "Artifacts" section above to test locally
+            
+            </details>
+            `;
+            
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Recipe Validation Summary')
+            );
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
