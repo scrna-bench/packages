@@ -199,8 +199,20 @@ jobs:
           echo "Downloaded artifacts:"
           find artifacts/ -type f -name "*.conda" -o -name "*.tar.bz2"
 
+      - name: Get OIDC token
+        id: oidc
+        shell: bash
+        run: |
+          # Request OIDC token from GitHub
+          OIDC_TOKEN=$(curl -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=prefix.dev" | jq -r '.value')
+          echo "token=$OIDC_TOKEN" >> $GITHUB_OUTPUT
+          echo "✅ OIDC token acquired"
+
       - name: Upload to prefix.dev
         shell: bash
+        env:
+          PREFIX_API_KEY: ${{ steps.oidc.outputs.token }}
         run: |
           # Find all package files
           PACKAGES=$(find artifacts/ -type f \( -name "*.conda" -o -name "*.tar.bz2" \))
