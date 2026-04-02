@@ -14,7 +14,7 @@ on:
         type: string
 
 env:
-  RATTLER_BUILD_VERSION: "0.16.0"
+  RATTLER_BUILD_VERSION: "0.31.1"
 
 jobs:
   detect-changes:
@@ -199,67 +199,12 @@ jobs:
           echo "Downloaded artifacts:"
           find artifacts/ -type f -name "*.conda" -o -name "*.tar.bz2"
 
-      - name: Get OIDC token and exchange for API token
-        id: oidc-token
-        shell: bash
-        run: |
-          echo "Requesting OIDC token from GitHub Actions..."
-          echo "Audience: prefix.dev"
-          echo "Repository: ${{ github.repository }}"
-          echo "Workflow: ${{ github.workflow }}"
-          echo "Ref: ${{ github.ref }}"
-          
-          OIDC_TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=prefix.dev" | jq -r '.value')
-          
-          if [ -z "$OIDC_TOKEN" ] || [ "$OIDC_TOKEN" = "null" ]; then
-            echo "❌ Failed to get OIDC token"
-            exit 1
-          fi
-          
-          echo "✅ OIDC token acquired successfully"
-          echo "Token length: ${#OIDC_TOKEN}"
-          
-          # Decode token for debugging
-          echo "Token claims:"
-          echo "$OIDC_TOKEN" | cut -d'.' -f2 | base64 -d 2>/dev/null | jq . || echo "Could not decode token"
-          
-          echo ""
-          echo "Exchanging OIDC token for prefix.dev API token..."
-          
-          # Try token exchange endpoint
-          EXCHANGE_RESPONSE=$(curl -sS -w "\nHTTP_CODE:%{http_code}" \
-            -X POST \
-            -H "Content-Type: application/json" \
-            -d "{\"token\": \"$OIDC_TOKEN\"}" \
-            "https://prefix.dev/api/v1/auth/oidc/github/exchange")
-          
-          HTTP_CODE=$(echo "$EXCHANGE_RESPONSE" | grep "HTTP_CODE:" | cut -d: -f2)
-          RESPONSE_BODY=$(echo "$EXCHANGE_RESPONSE" | sed '/HTTP_CODE:/d')
-          
-          if [ "$HTTP_CODE" = "200" ]; then
-            API_TOKEN=$(echo "$RESPONSE_BODY" | jq -r '.token // .access_token // .api_key')
-            if [ -n "$API_TOKEN" ] && [ "$API_TOKEN" != "null" ]; then
-              echo "✅ Successfully exchanged OIDC token for API token"
-              echo "token=$API_TOKEN" >> $GITHUB_OUTPUT
-            else
-              echo "⚠️  Token exchange succeeded but no token in response, using OIDC token directly"
-              echo "$RESPONSE_BODY"
-              echo "token=$OIDC_TOKEN" >> $GITHUB_OUTPUT
-            fi
-          else
-            echo "⚠️  Token exchange endpoint not available (HTTP $HTTP_CODE), using OIDC token directly"
-            echo "Response: $RESPONSE_BODY"
-            echo "token=$OIDC_TOKEN" >> $GITHUB_OUTPUT
-          fi
+
 
       - name: Upload to prefix.dev
         shell: bash
-        env:
-          PREFIX_API_KEY: ${{ steps.oidc-token.outputs.token }}
         run: |
-          echo "Uploading with authentication..."
-          echo "Token is set: $([ -n "$PREFIX_API_KEY" ] && echo 'yes' || echo 'no')"
+          echo "Uploading to prefix.dev using trusted publisher authentication..."
           echo "Channel: almost-conductor"
           
           # Find all package files
