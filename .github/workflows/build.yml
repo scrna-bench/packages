@@ -68,7 +68,7 @@ jobs:
           echo "Detected recipes: $RECIPES"
 
   build:
-    name: Build ${{ matrix.recipe }} (${{ matrix.platform }})
+    name: Build ${{ matrix.recipe }} (${{ matrix.platform.target }})
     needs: detect-changes
     if: needs.detect-changes.outputs.recipes != '[]'
     strategy:

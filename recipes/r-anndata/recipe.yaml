@@ -37,9 +37,8 @@ requirements:
     - r-rlang
 
 tests:
-  - r:
-      libraries:
-        - anndataR
+  - script:
+    - Rscript -e "library('anndataR')"
   - script:
     - Rscript -e "library('anndataR'); packageVersion('anndataR')"
 
