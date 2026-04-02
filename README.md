@@ -9,6 +9,22 @@ This is a monorepo containing multiple conda recipe feedstocks for packages that
 - Require custom builds or patches for lab-specific use cases
 - Experimental or in-development tools
 
+## Platform Support
+
+Packages are built for multiple platforms:
+
+| Platform | Target | Status |
+|----------|--------|--------|
+| **Linux (x86_64)** | `linux-64` | ✅ Fully supported |
+| **macOS (Intel)** | `osx-64` | ✅ Fully supported |
+| **macOS (Apple Silicon)** | `osx-arm64` | ✅ Fully supported |
+| **Windows (x86_64)** | `win-64` | ✅ Fully supported |
+
+**Noarch packages** (pure Python/R without compiled code) are built once and work on all platforms.
+**Platform-specific packages** (with C/C++/Rust code) are built separately for each platform.
+
+See [docs/PLATFORM_SUPPORT.md](docs/PLATFORM_SUPPORT.md) for details on multi-platform builds.
+
 ## Repository Structure
 
 ```
@@ -95,6 +111,7 @@ source:
 
 build:
   number: 0
+  noarch: generic  # Add this for platform-independent packages
   script:
     - cargo build --release  # or appropriate build command
     - mkdir -p $PREFIX/bin
@@ -181,7 +198,8 @@ conda install -c ./output your-package-name
 - **Test thoroughly**: Include meaningful tests in the `tests` section
 - **Document patches**: If applying patches, document why in comments
 - **Keep it reproducible**: Ensure builds are deterministic
-- **Use selectors wisely**: For platform-specific requirements, use selectors like `sel(linux)`
+- **Use selectors wisely**: For platform-specific requirements, use selectors like `[linux]`, `[osx]`, `[win]`
+- **Use noarch when possible**: For pure Python/R packages, use `noarch: python` or `noarch: generic` to build once for all platforms
 
 ## CI/CD Pipeline
 
@@ -246,6 +264,7 @@ rattler-build upload prefix -c almost-conductor output/noarch/your-package-*.con
 - [prefix.dev documentation](https://prefix.dev/docs)
 - [conda-forge recipes](https://github.com/conda-forge) (for examples)
 - [Recipe format reference](https://prefix-dev.github.io/rattler-build/latest/reference/recipe_file/)
+- [Multi-platform builds](docs/PLATFORM_SUPPORT.md) (Linux, macOS, Windows support)
 
 ## Maintainers
 

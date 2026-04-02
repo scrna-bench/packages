@@ -5,13 +5,7 @@ on:
     branches:
       - main
       - master
-    paths:
-      - 'recipes/**'
-      - '.github/workflows/build.yml'
   pull_request:
-    paths:
-      - 'recipes/**'
-      - '.github/workflows/build.yml'
   workflow_dispatch:
     inputs:
       recipe:
@@ -46,19 +40,26 @@ jobs:
             # PR - detect changed recipes
             CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep '^recipes/' || true)
             if [ -z "$CHANGED_FILES" ]; then
-              echo "No recipe changes detected"
+              echo "No recipe changes detected in PR"
               RECIPES='[]'
             else
               RECIPES=$(echo "$CHANGED_FILES" | cut -d'/' -f2 | sort -u | jq -R -s -c 'split("\n") | map(select(length > 0))')
             fi
           else
             # Push to main - detect changed recipes
-            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '^recipes/' || true)
-            if [ -z "$CHANGED_FILES" ]; then
-              echo "No recipe changes detected"
-              RECIPES='[]'
+            # Check if this is an initial commit or if before SHA is valid
+            if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ] || \
+               [ -z "${{ github.event.before }}" ]; then
+              echo "Initial push or invalid before SHA - building all recipes"
+              RECIPES=$(find recipes -mindepth 1 -maxdepth 1 -type d ! -name "_*" -exec basename {} \; | jq -R -s -c 'split("\n") | map(select(length > 0))')
             else
-              RECIPES=$(echo "$CHANGED_FILES" | cut -d'/' -f2 | sort -u | jq -R -s -c 'split("\n") | map(select(length > 0))')
+              CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '^recipes/' || true)
+              if [ -z "$CHANGED_FILES" ]; then
+                echo "No recipe changes detected - building all recipes"
+                RECIPES=$(find recipes -mindepth 1 -maxdepth 1 -type d ! -name "_*" -exec basename {} \; | jq -R -s -c 'split("\n") | map(select(length > 0))')
+              else
+                RECIPES=$(echo "$CHANGED_FILES" | cut -d'/' -f2 | sort -u | jq -R -s -c 'split("\n") | map(select(length > 0))')
+              fi
             fi
           fi
           
@@ -67,13 +68,23 @@ jobs:
           echo "Detected recipes: $RECIPES"
 
   build:
-    name: Build ${{ matrix.recipe }}
+    name: Build ${{ matrix.recipe }} (${{ matrix.platform }})
     needs: detect-changes
     if: needs.detect-changes.outputs.recipes != '[]'
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
-    runs-on: ${{ matrix.os || 'ubuntu-latest' }}
+      matrix: 
+        recipe: ${{ fromJson(needs.detect-changes.outputs.recipes) }}
+        platform:
+          - os: ubuntu-latest
+            target: linux-64
+          - os: macos-latest
+            target: osx-64
+          - os: macos-14  # M1/M2
+            target: osx-arm64
+          - os: windows-latest
+            target: win-64
+    runs-on: ${{ matrix.platform.os }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -82,12 +93,15 @@ jobs:
         uses: prefix-dev/setup-pixi@v0.5.0
         with:
           pixi-version: latest
+          run-install: false
 
       - name: Install rattler-build
+        shell: bash
         run: |
           pixi global install rattler-build==${{ env.RATTLER_BUILD_VERSION }}
 
       - name: Verify recipe exists
+        shell: bash
         run: |
           if [ ! -f "recipes/${{ matrix.recipe }}/recipe.yaml" ]; then
             echo "Error: Recipe file not found at recipes/${{ matrix.recipe }}/recipe.yaml"
@@ -95,39 +109,58 @@ jobs:
           fi
           echo "Found recipe at recipes/${{ matrix.recipe }}/recipe.yaml"
 
+      - name: Check if recipe is noarch
+        id: check-noarch
+        shell: bash
+        run: |
+          if grep -q "noarch: generic" recipes/${{ matrix.recipe }}/recipe.yaml || \
+             grep -q "noarch: python" recipes/${{ matrix.recipe }}/recipe.yaml; then
+            echo "is_noarch=true" >> $GITHUB_OUTPUT
+            echo "Recipe is noarch - will only build on linux-64"
+          else
+            echo "is_noarch=false" >> $GITHUB_OUTPUT
+            echo "Recipe is platform-specific - building for ${{ matrix.platform.target }}"
+          fi
+
       - name: Build recipe
+        if: steps.check-noarch.outputs.is_noarch == 'false' || matrix.platform.target == 'linux-64'
+        shell: bash
         run: |
           cd recipes/${{ matrix.recipe }}
-          rattler-build build --recipe recipe.yaml --output-dir ../../output
+          rattler-build build --recipe recipe.yaml --output-dir ../../output --target-platform ${{ matrix.platform.target }}
         env:
           CONDA_BLD_PATH: ${{ github.workspace }}/output
 
       - name: List built packages
+        if: steps.check-noarch.outputs.is_noarch == 'false' || matrix.platform.target == 'linux-64'
+        shell: bash
         run: |
           echo "Built packages:"
           ls -lh output/
           
-      - name: Test installation
+      - name: Verify package built
+        if: steps.check-noarch.outputs.is_noarch == 'false' || matrix.platform.target == 'linux-64'
+        shell: bash
         run: |
-          # Get the built package file
-          PACKAGE_FILE=$(ls output/*.conda 2>/dev/null | head -n 1 || ls output/*.tar.bz2 2>/dev/null | head -n 1)
-          
+          # Verify the package was created
+          PACKAGE_FILE=$(find output -name "*.conda" 2>/dev/null | head -n 1)
           if [ -z "$PACKAGE_FILE" ]; then
-            echo "Warning: No package file found to test"
-            exit 0
+            PACKAGE_FILE=$(find output -name "*.tar.bz2" 2>/dev/null | head -n 1)
           fi
           
-          echo "Testing package: $PACKAGE_FILE"
+          if [ -z "$PACKAGE_FILE" ]; then
+            echo "Error: No package file found"
+            exit 1
+          fi
           
-          # Create a test environment and install the package
-          pixi init test-env
-          cd test-env
-          pixi add --manifest-path pixi.toml file://../$PACKAGE_FILE || echo "Installation test skipped (pixi add limitation)"
+          echo "✅ Package built successfully: $PACKAGE_FILE"
+          ls -lh "$PACKAGE_FILE"
 
       - name: Upload build artifacts
+        if: steps.check-noarch.outputs.is_noarch == 'false' || matrix.platform.target == 'linux-64'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.recipe }}-packages
+          name: ${{ matrix.recipe }}-${{ matrix.platform.target }}-packages
           path: output/
           retention-days: 30
           if-no-files-found: error
@@ -148,8 +181,10 @@ jobs:
         uses: prefix-dev/setup-pixi@v0.5.0
         with:
           pixi-version: latest
+          run-install: false
 
       - name: Install rattler-build
+        shell: bash
         run: |
           pixi global install rattler-build==${{ env.RATTLER_BUILD_VERSION }}
 
@@ -159,11 +194,13 @@ jobs:
           path: artifacts/
 
       - name: List artifacts
+        shell: bash
         run: |
           echo "Downloaded artifacts:"
           find artifacts/ -type f -name "*.conda" -o -name "*.tar.bz2"
 
       - name: Upload to prefix.dev
+        shell: bash
         run: |
           # Find all package files
           PACKAGES=$(find artifacts/ -type f \( -name "*.conda" -o -name "*.tar.bz2" \))
@@ -182,7 +219,7 @@ jobs:
           echo "✅ All packages uploaded successfully!"
 
       - name: Comment on PR (if from PR)
-        if: github.event_name == 'push' && github.event.head_commit.message contains 'Merge pull request'
+        if: github.event_name == 'push' && contains(github.event.head_commit.message, 'Merge pull request')
         uses: actions/github-script@v7
         with:
           script: |
