@@ -229,10 +229,10 @@ jobs:
       - name: Upload to prefix.dev
         shell: bash
         env:
-          PREFIX_API_KEY: ${{ steps.oidc-token.outputs.token }}
+          OIDC_TOKEN: ${{ steps.oidc-token.outputs.token }}
         run: |
-          echo "Uploading with OIDC authentication..."
-          echo "Token is set: $([ -n "$PREFIX_API_KEY" ] && echo 'yes' || echo 'no')"
+          echo "Uploading with OIDC authentication via API..."
+          echo "Token is set: $([ -n "$OIDC_TOKEN" ] && echo 'yes' || echo 'no')"
           echo "Channel: almost-conductor"
           
           # Find all package files
@@ -246,7 +246,22 @@ jobs:
           echo "Uploading packages to prefix.dev channel: almost-conductor"
           for PACKAGE in $PACKAGES; do
             echo "Uploading: $PACKAGE"
-            rattler-build upload prefix -c almost-conductor "$PACKAGE"
+            PACKAGE_NAME=$(basename "$PACKAGE")
+            
+            # Upload using prefix.dev API with OIDC token
+            HTTP_CODE=$(curl -w "%{http_code}" -o response.txt \
+              -X POST \
+              -H "Authorization: Bearer $OIDC_TOKEN" \
+              -F "package=@$PACKAGE" \
+              "https://prefix.dev/api/v1/upload/almost-conductor")
+            
+            if [ "$HTTP_CODE" -eq 200 ] || [ "$HTTP_CODE" -eq 201 ]; then
+              echo "✅ Successfully uploaded: $PACKAGE_NAME"
+            else
+              echo "❌ Failed to upload: $PACKAGE_NAME (HTTP $HTTP_CODE)"
+              cat response.txt
+              exit 1
+            fi
           done
           
           echo "✅ All packages uploaded successfully!"
