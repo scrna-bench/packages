@@ -68,13 +68,12 @@ jobs:
           echo "Detected recipes: $RECIPES"
 
   build:
-    name: Build ${{ matrix.recipe }} (${{ matrix.platform.target }})
+    name: Build (${{ matrix.platform.target }})
     needs: detect-changes
     if: needs.detect-changes.outputs.recipes != '[]'
     strategy:
       fail-fast: false
-      matrix: 
-        recipe: ${{ fromJson(needs.detect-changes.outputs.recipes) }}
+      matrix:
         platform:
           - os: ubuntu-latest
             target: linux-64
@@ -100,67 +99,90 @@ jobs:
         run: |
           pixi global install rattler-build==${{ env.RATTLER_BUILD_VERSION }}
 
-      - name: Verify recipe exists
+      - name: Build recipes in dependency order
         shell: bash
         run: |
-          if [ ! -f "recipes/${{ matrix.recipe }}/recipe.yaml" ]; then
-            echo "Error: Recipe file not found at recipes/${{ matrix.recipe }}/recipe.yaml"
-            exit 1
-          fi
-          echo "Found recipe at recipes/${{ matrix.recipe }}/recipe.yaml"
+          mkdir -p output
 
-      - name: Check if recipe is noarch
-        id: check-noarch
-        shell: bash
-        run: |
-          if grep -q "noarch: generic" recipes/${{ matrix.recipe }}/recipe.yaml || \
-             grep -q "noarch: python" recipes/${{ matrix.recipe }}/recipe.yaml; then
-            echo "is_noarch=true" >> $GITHUB_OUTPUT
-            echo "Recipe is noarch - will only build on linux-64"
-          else
-            echo "is_noarch=false" >> $GITHUB_OUTPUT
-            echo "Recipe is platform-specific - building for ${{ matrix.platform.target }}"
-          fi
+          # Explicit build order — dependencies must come before dependents.
+          # Any recipe not listed here is built last, in arbitrary order.
+          ORDERED=(
+            "bioconductor-rhdf5lib"
+            "bioconductor-rhdf5filters"
+            "bioconductor-rhdf5"
+            "r-anndata"
+          )
 
-      - name: Build recipe
-        if: steps.check-noarch.outputs.is_noarch == 'false' || matrix.platform.target == 'linux-64'
-        shell: bash
-        run: |
-          cd recipes/${{ matrix.recipe }}
-          rattler-build build --recipe recipe.yaml --output-dir ../../output --target-platform ${{ matrix.platform.target }}
+          RECIPES_JSON='${{ needs.detect-changes.outputs.recipes }}'
+
+          in_build_list() {
+            echo "$RECIPES_JSON" | jq -e --arg r "$1" 'index($r) != null' > /dev/null 2>&1
+          }
+
+          build_recipe() {
+            local recipe=$1
+            echo "::group::Building $recipe"
+
+            if grep -q "noarch:" "recipes/$recipe/recipe.yaml" && \
+               [ "${{ matrix.platform.target }}" != "linux-64" ]; then
+              echo "Skipping noarch recipe on ${{ matrix.platform.target }}"
+              echo "::endgroup::"
+              return 0
+            fi
+
+            rattler-build build \
+              --recipe "recipes/$recipe/recipe.yaml" \
+              --output-dir output \
+              --channel "$(pwd)/output" \
+              --target-platform "${{ matrix.platform.target }}"
+
+            local status=$?
+            echo "::endgroup::"
+            return $status
+          }
+
+          # Build in declared order first
+          BUILT=()
+          for recipe in "${ORDERED[@]}"; do
+            if in_build_list "$recipe"; then
+              build_recipe "$recipe"
+              BUILT+=("$recipe")
+            fi
+          done
+
+          # Build any remaining recipes not covered by the ordered list
+          for recipe in $(echo "$RECIPES_JSON" | jq -r '.[]'); do
+            skip=false
+            for already in "${BUILT[@]}"; do
+              [ "$already" = "$recipe" ] && skip=true && break
+            done
+            if [ "$skip" = "false" ]; then
+              build_recipe "$recipe"
+            fi
+          done
         env:
           CONDA_BLD_PATH: ${{ github.workspace }}/output
 
       - name: List built packages
-        if: steps.check-noarch.outputs.is_noarch == 'false' || matrix.platform.target == 'linux-64'
         shell: bash
         run: |
           echo "Built packages:"
-          ls -lh output/
-          
-      - name: Verify package built
-        if: steps.check-noarch.outputs.is_noarch == 'false' || matrix.platform.target == 'linux-64'
+          find output -name "*.conda" -o -name "*.tar.bz2" | sort
+
+      - name: Verify packages built
         shell: bash
         run: |
-          # Verify the package was created
-          PACKAGE_FILE=$(find output -name "*.conda" 2>/dev/null | head -n 1)
-          if [ -z "$PACKAGE_FILE" ]; then
-            PACKAGE_FILE=$(find output -name "*.tar.bz2" 2>/dev/null | head -n 1)
-          fi
-          
-          if [ -z "$PACKAGE_FILE" ]; then
-            echo "Error: No package file found"
+          PACKAGE_COUNT=$(find output -name "*.conda" -o -name "*.tar.bz2" | wc -l)
+          if [ "$PACKAGE_COUNT" -eq 0 ]; then
+            echo "Error: No package files found"
             exit 1
           fi
-          
-          echo "✅ Package built successfully: $PACKAGE_FILE"
-          ls -lh "$PACKAGE_FILE"
+          echo "✅ $PACKAGE_COUNT package(s) built successfully"
 
       - name: Upload build artifacts
-        if: steps.check-noarch.outputs.is_noarch == 'false' || matrix.platform.target == 'linux-64'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.recipe }}-${{ matrix.platform.target }}-packages
+          name: ${{ matrix.platform.target }}-packages
           path: output/
           retention-days: 30
           if-no-files-found: error

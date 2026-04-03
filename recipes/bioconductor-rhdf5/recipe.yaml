@@ -1,0 +1,56 @@
+context:
+  name: bioconductor-rhdf5
+  version: "2.54.1"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://bioconductor.org/packages/3.21/bioc/src/contrib/rhdf5_${{ version }}.tar.gz
+  sha256: db8c709d477e0f76b2f549e3b802fd3a3e65f2f3751e59b6d11879c5708523ff
+
+build:
+  number: 0
+  script:
+    - R CMD INSTALL --build .
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - make
+  host:
+    - r-base >=4.0.0
+    - bioconductor-rhdf5lib >=1.13.4
+    - bioconductor-rhdf5filters >=1.15.5
+  run:
+    - r-base >=4.0.0
+    - bioconductor-rhdf5lib >=1.13.4
+    - bioconductor-rhdf5filters >=1.15.5
+
+tests:
+  - script:
+    - Rscript -e "library('rhdf5')"
+  - script:
+    - Rscript -e "library('rhdf5'); packageVersion('rhdf5')"
+
+about:
+  homepage: https://github.com/Huber-group-EMBL/rhdf5
+  summary: R Interface to HDF5
+  description: |
+    This package provides an interface between HDF5 and R. HDF5's main
+    features are the ability to store and access very large and/or complex
+    datasets and a wide variety of metadata on mass storage (disk) through
+    a completely portable file format.
+  license: Artistic-2.0
+  license_file: LICENSE
+  repository: https://github.com/Huber-group-EMBL/rhdf5
+  documentation: https://bioconductor.org/packages/release/bioc/html/rhdf5.html
+
+extra:
+  recipe-maintainers:
+    - btraven00
+  bioconductor:
+    package: rhdf5
+    version: 3.21

@@ -1,0 +1,50 @@
+context:
+  name: bioconductor-rhdf5filters
+  version: "1.22.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://bioconductor.org/packages/3.21/bioc/src/contrib/rhdf5filters_${{ version }}.tar.gz
+  sha256: 87b4fc01ea4cae23298afdc351fcf72c97750dab6ee6b1159c3f08f8c005b0d3
+
+build:
+  number: 0
+  script:
+    - R CMD INSTALL --build .
+
+requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ compiler('cxx') }}
+    - make
+  host:
+    - bioconductor-rhdf5lib >=1.13.4
+  run:
+    - bioconductor-rhdf5lib >=1.13.4
+
+tests:
+  - script:
+    - Rscript -e "library('rhdf5filters')"
+  - script:
+    - Rscript -e "library('rhdf5filters'); packageVersion('rhdf5filters')"
+
+about:
+  homepage: https://github.com/Huber-group-EMBL/rhdf5filters
+  summary: Additional compression filters for HDF5 datasets
+  description: |
+    Provides a collection of additional compression filters for HDF5 datasets.
+    The package is intended to provide seamless integration with rhdf5.
+  license: BSD-2-Clause
+  license_file: LICENSE
+  repository: https://github.com/Huber-group-EMBL/rhdf5filters
+  documentation: https://bioconductor.org/packages/release/bioc/html/rhdf5filters.html
+
+extra:
+  recipe-maintainers:
+    - btraven00
+  bioconductor:
+    package: rhdf5filters
+    version: 3.21
