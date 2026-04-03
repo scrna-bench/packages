@@ -22,6 +22,7 @@ requirements:
     - make
   host:
     - bioconductor-rhdf5lib >=1.13.4
+    - zlib
   run:
     - bioconductor-rhdf5lib >=1.13.4
 
