@@ -134,6 +134,7 @@ jobs:
               --recipe "recipes/$recipe/recipe.yaml" \
               --output-dir output \
               --channel "$(pwd)/output" \
+              --channel conda-forge \
               --target-platform "${{ matrix.platform.target }}"
 
             local status=$?

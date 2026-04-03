@@ -38,7 +38,6 @@ about:
     Provides a collection of additional compression filters for HDF5 datasets.
     The package is intended to provide seamless integration with rhdf5.
   license: BSD-2-Clause
-  license_file: LICENSE
   repository: https://github.com/Huber-group-EMBL/rhdf5filters
   documentation: https://bioconductor.org/packages/release/bioc/html/rhdf5filters.html
 

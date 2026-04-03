@@ -22,6 +22,7 @@ requirements:
     - make
   host:
     - r-base >=4.2.0
+    - zlib
   run:
     - r-base >=4.2.0
 
@@ -38,7 +39,6 @@ about:
     Provides C and C++ hdf5 libraries. This package ships the HDF5 C library
     for use by other R packages that need to link against it.
   license: Artistic-2.0
-  license_file: LICENSE
   repository: https://github.com/Huber-group-EMBL/Rhdf5lib
   documentation: https://bioconductor.org/packages/release/bioc/html/Rhdf5lib.html
 

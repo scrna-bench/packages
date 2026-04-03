@@ -44,7 +44,6 @@ about:
     datasets and a wide variety of metadata on mass storage (disk) through
     a completely portable file format.
   license: Artistic-2.0
-  license_file: LICENSE
   repository: https://github.com/Huber-group-EMBL/rhdf5
   documentation: https://bioconductor.org/packages/release/bioc/html/rhdf5.html
 
