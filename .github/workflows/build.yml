@@ -119,6 +119,9 @@ jobs:
             echo "$RECIPES_JSON" | jq -e --arg r "$1" 'index($r) != null' > /dev/null 2>&1
           }
 
+          # Strip carriage returns from recipe names (Windows line endings in GHA JSON)
+          clean_recipe() { echo "$1" | tr -d '\r'; }
+
           build_recipe() {
             local recipe=$1
             echo "::group::Building $recipe"
@@ -146,6 +149,7 @@ jobs:
           # Build in declared order first
           BUILT=()
           for recipe in "${ORDERED[@]}"; do
+            recipe=$(clean_recipe "$recipe")
             if in_build_list "$recipe"; then
               build_recipe "$recipe"
               BUILT+=("$recipe")
@@ -153,7 +157,7 @@ jobs:
           done
 
           # Build any remaining recipes not covered by the ordered list
-          for recipe in $(echo "$RECIPES_JSON" | jq -r '.[]'); do
+          for recipe in $(echo "$RECIPES_JSON" | jq -r '.[]' | tr -d '\r'); do
             skip=false
             for already in "${BUILT[@]}"; do
               [ "$already" = "$recipe" ] && skip=true && break
