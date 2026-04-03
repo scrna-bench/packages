@@ -7,8 +7,8 @@ package:
   version: ${{ version }}
 
 source:
-  url: https://bioconductor.org/packages/3.21/bioc/src/contrib/Rhdf5lib_${{ version }}.tar.gz
-  sha256: 57c7f62e2c6ea6b37a6180864be4ee170b6538feb4745c11817a52845628140c
+  url: https://bioconductor.org/packages/3.22/bioc/src/contrib/Rhdf5lib_${{ version }}.tar.gz
+  sha256: be6e080b0f8c91eea2761cb10b910036c00bcad6866dc4d285411a7ca4400fc4
 
 build:
   number: 0
@@ -47,4 +47,4 @@ extra:
     - btraven00
   bioconductor:
     package: Rhdf5lib
-    version: 3.21
+    version: 3.22

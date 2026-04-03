@@ -7,8 +7,8 @@ package:
   version: ${{ version }}
 
 source:
-  url: https://bioconductor.org/packages/3.21/bioc/src/contrib/rhdf5filters_${{ version }}.tar.gz
-  sha256: 87b4fc01ea4cae23298afdc351fcf72c97750dab6ee6b1159c3f08f8c005b0d3
+  url: https://bioconductor.org/packages/3.22/bioc/src/contrib/rhdf5filters_${{ version }}.tar.gz
+  sha256: 5f7fe109420207e816cac8d0744a6bc64b9fbc1af893c31b4c0334bf0025b945
 
 build:
   number: 0
@@ -47,4 +47,4 @@ extra:
     - btraven00
   bioconductor:
     package: rhdf5filters
-    version: 3.21
+    version: 3.22
