@@ -24,6 +24,7 @@ requirements:
     - r-base >=4.0.0
     - bioconductor-rhdf5lib >=1.13.4
     - bioconductor-rhdf5filters >=1.15.5
+    - zlib
   run:
     - r-base >=4.0.0
     - bioconductor-rhdf5lib >=1.13.4
