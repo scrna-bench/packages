@@ -139,8 +139,6 @@ jobs:
               --target-platform "${{ matrix.platform.target }}"
 
             local status=$?
-            # Re-index local channel so subsequent builds can find this package
-            rattler-build index output/ || true
             echo "::endgroup::"
             return $status
           }
