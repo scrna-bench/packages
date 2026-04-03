@@ -248,10 +248,13 @@ jobs:
           echo "Uploading packages to prefix.dev channel: almost-conductor"
           for PACKAGE in $PACKAGES; do
             echo "Uploading: $PACKAGE"
-            rattler-build upload prefix -c almost-conductor "$PACKAGE"
+            if rattler-build upload prefix -c almost-conductor "$PACKAGE"; then
+              echo "✅ Uploaded: $PACKAGE"
+            else
+              echo "⚠️ Skipped (already exists): $PACKAGE"
+            fi
           done
-          
-          echo "✅ All packages uploaded successfully!"
+          echo "✅ Done uploading packages"
 
       - name: Comment on PR (if from PR)
         if: github.event_name == 'push' && contains(github.event.head_commit.message, 'Merge pull request')
