@@ -77,8 +77,6 @@ jobs:
         platform:
           - os: ubuntu-latest
             target: linux-64
-          - os: macos-13  # Intel — native osx-64
-            target: osx-64
           - os: macos-14  # M1/M2 — native osx-arm64
             target: osx-arm64
           - os: windows-latest
@@ -196,7 +194,11 @@ jobs:
   publish:
     name: Publish to prefix.dev
     needs: build
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    if: >-
+      always() &&
+      needs.build.result != 'cancelled' &&
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     runs-on: ubuntu-latest
     permissions:
       id-token: write
