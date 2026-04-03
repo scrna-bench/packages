@@ -191,7 +191,7 @@ jobs:
           name: ${{ matrix.platform.target }}-packages
           path: output/
           retention-days: 30
-          if-no-files-found: error
+          if-no-files-found: ignore
 
   publish:
     name: Publish to prefix.dev
