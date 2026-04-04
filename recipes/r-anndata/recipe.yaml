@@ -8,7 +8,7 @@ package:
 
 source:
   url: https://bioconductor.org/packages/3.22/bioc/src/contrib/anndataR_${{ version }}.tar.gz
-  sha256: 4bc3d26d57af3b535d706f6424ce164aa592a5074bc2d61c7ae75fc0145d731b
+  sha256: 8d52cffa296a66086defee65bdee666f8e1a3b542d3242f33f4721a09df7c1be
 
 build:
   number: 0
