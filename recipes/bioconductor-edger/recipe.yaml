@@ -7,7 +7,7 @@ package:
   version: ${{ version }}
 
 source:
-  url: https://bioconductor.org/packages/3.22/bioc/src/contrib/DropletUtils_${{ version }}.tar.gz
+  url: https://bioconductor.org/packages/3.22/bioc/src/contrib/edgeR_${{ version }}.tar.gz
   sha256: dc1451f32fc5793001b14e0cae1b0fafcadc3b7081637f2f8e8dba5ee4760da4
 
 build:
