@@ -18,8 +18,8 @@ build:
 
 requirements:
   host:
-    - bioconductor-beachmat >=2.26.0,<2.27.0
     - bioconductor-biocgenerics >=0.56.0,<0.57.0
+    - bioconductor-beachmat >=2.26.0,<2.27.0
     - bioconductor-biocparallel >=1.44.0,<1.45.0
     - bioconductor-delayedarray >=0.36.0,<0.37.0
     - bioconductor-delayedmatrixstats >=1.32.0,<1.33.0
@@ -44,8 +44,8 @@ requirements:
     - liblapack
     - zlib
   run:
-    - bioconductor-beachmat >=2.26.0,<2.27.0
     - bioconductor-biocgenerics >=0.56.0,<0.57.0
+    - bioconductor-beachmat >=2.26.0,<2.27.0
     - bioconductor-biocparallel >=1.44.0,<1.45.0
     - bioconductor-delayedarray >=0.36.0,<0.37.0
     - bioconductor-delayedmatrixstats >=1.32.0,<1.33.0
@@ -86,7 +86,7 @@ about:
     from count matrices or molecule information files, identification of cells 
     from empty droplets, removal of barcode-swapped pseudo-cells, and downsampling 
     of the count matrix.
-  license: GPL-3.0
+  license: GPL-3.0-only
   license_file: LICENSE
   repository: https://bioconductor.org/packages/DropletUtils/
   documentation: https://bioconductor.org/packages/release/bioc/html/DropletUtils.html
