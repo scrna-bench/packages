@@ -1,5 +1,5 @@
 context:
-  name: r-anndata
+  name: bioconductor-anndatar
   version: "1.0.2"
 
 package:

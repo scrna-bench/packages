@@ -108,8 +108,9 @@ jobs:
             "bioconductor-rhdf5lib"
             "bioconductor-rhdf5filters"
             "bioconductor-rhdf5"
-            "r-anndata"
+            "bioconductor-anndatar"
             "bioconductor-edger"
+            "bioconductor-sparsearray"
           )
 
           RECIPES_JSON='${{ needs.detect-changes.outputs.recipes }}'
