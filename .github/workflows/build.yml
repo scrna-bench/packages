@@ -137,6 +137,7 @@ jobs:
               --channel "$(pwd)/output" \
               --channel https://prefix.dev/almost-conductor \
               --channel conda-forge \
+              --channel bioconda \
               --target-platform "${{ matrix.platform.target }}"
 
             local status=$?
