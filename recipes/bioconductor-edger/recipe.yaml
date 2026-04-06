@@ -20,9 +20,11 @@ requirements:
   host:
     - bioconductor-limma >=3.66.0,<3.67.0
     - r-base >= 4.5.0
+    - r-locfit
   run:
     - bioconductor-limma >=3.66.0,<3.67.0
     - r-base >= 4.5.0
+    - r-locfit
 
 tests:
   - script:
@@ -32,7 +34,7 @@ tests:
 
 about:
   homepage: https://bioconductor.org/packages/release/bioc/html/edgeR.html
-  summary: edgeR Bioconductor package
+  summary: Bioconductor edgeR package
   description: |
     Differential expression analysis of sequence count data. Implements a 
     range of statistical methodology based on the negative binomial distributions, 
@@ -43,7 +45,6 @@ about:
     spectral counts. RNA-seq analyses can be conducted at the gene or isoform 
     level, and tests can be conducted for differential exon or transcript usage.
   license: GPL-3.0-only
-  license_file: LICENSE
   repository: https://code.bioconductor.org/browse/edgeR/
   documentation: https://bioconductor.org/packages/release/bioc/html/edgeR.html
 
