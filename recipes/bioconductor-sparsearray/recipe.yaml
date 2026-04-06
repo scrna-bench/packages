@@ -57,8 +57,7 @@ about:
     the behavior of ordinary matrix and array objects in base R. In particular, 
     they suppport most of the "standard matrix and array API" defined in base R 
     and in the matrixStats package from CRAN.
-  license: MIT
-  license_file: LICENSE
+  license: Artistic-2.0
   repository: https://github.com/Bioconductor/SparseArray
   documentation: https://bioconductor.github.io/SparseArray/
 
