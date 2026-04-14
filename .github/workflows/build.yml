@@ -111,8 +111,7 @@ jobs:
             "bioconductor-anndatar"
             "bioconductor-edger"
             "bioconductor-sparsearray"
-            "bioconductor-rigraphlib"
-            "bioconductor-scrapper"
+            "bioconductor-dir.expiry"
           )
 
           RECIPES_JSON='${{ needs.detect-changes.outputs.recipes }}'
@@ -139,9 +138,9 @@ jobs:
               --recipe "recipes/$recipe/recipe.yaml" \
               --output-dir output \
               --channel "$(pwd)/output" \
-              --channel bioconda \
-              --channel conda-forge \
               --channel https://prefix.dev/almost-conductor \
+              --channel conda-forge \
+              --channel bioconda \
               --target-platform "${{ matrix.platform.target }}"
 
             local status=$?
