@@ -1,0 +1,65 @@
+context:
+  name: bioconductor-scrapper
+  version: "1.4.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://bioconductor.org/packages/3.22/bioc/src/contrib/scrapper_${{ version }}.tar.gz
+  sha256: dffda700a4d8d51397469ba659af38e06ccf75e47d7903a7b7f1a3e4175f9b9a
+
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - R CMD INSTALL --build .
+
+
+Rigraphlib, parallel
+
+requirements:
+  host:
+    - r-base >=4.5.0
+    - r-rcpp
+    - bioconductor-beachmat >=2.26.0,<2.27.0
+    - bioconductor-biocneighbors >= 2.4.0,<2.5.0
+    - bioconductor-delayedarray >=0.36.0,<0.37.0
+    - bioconductor-rigraphlib >=1.2.0,<1.3.0
+  run:
+    - r-base >=4.5.0
+    - r-rcpp
+    - bioconductor-beachmat >=2.26.0,<2.27.0
+    - bioconductor-biocneighbors >= 2.4.0,<2.5.0
+    - bioconductor-delayedarray >=0.36.0,<0.37.0
+    - bioconductor-rigraphlib >=1.2.0,<1.3.0
+
+tests:
+  - script:
+    - Rscript -e "library('scrapper')"
+  - script:
+    - Rscript -e "library('scrapper'); packageVersion('scrapper')"
+
+about:
+  homepage: https://www.bioconductor.org/packages/release/bioc/html/scrapper.html
+  summary: Bindings to C++ Libraries for Single-Cell Analysis
+  description: |
+    Implements R bindings to C++ code for analyzing single-cell (expression) 
+    data, mostly from various libscran libraries. Each function performs an 
+    individual step in the single-cell analysis workflow, ranging from quality 
+    control to clustering and marker detection. It is mostly intended for other 
+    Bioconductor package developers to build more user-friendly end-to-end 
+    workflows.
+  license: MIT
+  license_file: LICENSE
+  repository: https://git.bioconductor.org/packages/scrapper
+  documentation: https://doi.org/10.21105/joss.05603
+
+extra:
+  recipe-maintainers:
+    - markrobinsonuzh
+  bioconductor:
+    package: scrapper
+    version: 3.22
