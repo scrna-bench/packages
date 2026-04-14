@@ -8,7 +8,7 @@ package:
 
 source:
   url: https://bioconductor.org/packages/3.22/bioc/src/contrib/biocmake_${{ version }}.tar.gz
-  sha256: a4291fb8e03b16f08130ca74fc9e0d00b9bd90196b48c084202324cfe51310a4
+  sha256: cc62588937bf04ed3f3ced2b175d32830c3d16f6f26bcdc6a6dc82d75c5bbdb8
 
 
 build:
