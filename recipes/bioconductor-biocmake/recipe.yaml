@@ -1,0 +1,52 @@
+context:
+  name: bioconductor-biocmake
+  version: "1.2.0"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://bioconductor.org/packages/3.22/bioc/src/contrib/biocmake_${{ version }}.tar.gz
+  sha256: a4291fb8e03b16f08130ca74fc9e0d00b9bd90196b48c084202324cfe51310a4
+
+
+build:
+  number: 0
+  skip:
+    - win
+  script:
+    - R CMD INSTALL --build .
+
+
+requirements:
+  host:
+    - r-base >=4.5.0
+    - bioconductor-dir.expiry >=1.18.0, <1.19.0
+  run:
+    - r-base >=4.5.0
+    - bioconductor-dir.expiry >=1.18.0, <1.19.0
+
+tests:
+  - script:
+    - Rscript -e "library('biocmake')"
+  - script:
+    - Rscript -e "library('biocmake'); packageVersion('Rigraphlib')"
+
+about:
+  homepage: https://www.bioconductor.org/packages/release/bioc/html/biocmake.html
+  summary: CMake for Bioconductor
+  description: |
+    Manages the installation of CMake for building Bioconductor packages. This avoids 
+    the need for end-users to manually install CMake on their system. No action is 
+    performed if a suitable version of CMake is already available.
+  license: MIT
+  repository: https://github.com/LTLA/biocmake
+  documentation: https://www.bioconductor.org/packages/release/bioc/html/biocmake.html
+
+extra:
+  recipe-maintainers:
+    - markrobinsonuzh
+  bioconductor:
+    package: biocmake
+    version: 3.22
