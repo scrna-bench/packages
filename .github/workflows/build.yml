@@ -139,9 +139,9 @@ jobs:
               --recipe "recipes/$recipe/recipe.yaml" \
               --output-dir output \
               --channel "$(pwd)/output" \
-              --channel https://prefix.dev/almost-conductor \
-              --channel conda-forge \
               --channel bioconda \
+              --channel conda-forge \
+              --channel https://prefix.dev/almost-conductor \
               --target-platform "${{ matrix.platform.target }}"
 
             local status=$?
