@@ -111,6 +111,8 @@ jobs:
             "bioconductor-anndatar"
             "bioconductor-edger"
             "bioconductor-sparsearray"
+            "bioconductor-rigraphlib"
+            "bioconductor-scrapper"
           )
 
           RECIPES_JSON='${{ needs.detect-changes.outputs.recipes }}'
