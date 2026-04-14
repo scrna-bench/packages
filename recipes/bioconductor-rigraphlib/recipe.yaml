@@ -22,8 +22,10 @@ build:
 requirements:
   host:
     - r-base >=4.5.0
+    - cmake
   run:
     - r-base >=4.5.0
+    - cmake
 
 tests:
   - script:
