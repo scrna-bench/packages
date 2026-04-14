@@ -113,6 +113,7 @@ jobs:
             "bioconductor-sparsearray"
             "bioconductor-dir.expiry"
             "bioconductor-biocmake"
+            "bioconductor-rigraphlib"
           )
 
           RECIPES_JSON='${{ needs.detect-changes.outputs.recipes }}'
