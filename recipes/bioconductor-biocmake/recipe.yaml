@@ -31,7 +31,7 @@ tests:
   - script:
     - Rscript -e "library('biocmake')"
   - script:
-    - Rscript -e "library('biocmake'); packageVersion('Rigraphlib')"
+    - Rscript -e "library('biocmake'); packageVersion('biocmake')"
 
 about:
   homepage: https://www.bioconductor.org/packages/release/bioc/html/biocmake.html
