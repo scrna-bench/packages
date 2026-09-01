@@ -139,13 +139,30 @@ jobs:
               return 0
             fi
 
+            # Default channels, highest priority first. A recipe may override
+            # them with recipes/<name>/channels.txt (one channel per line, '#'
+            # comments allowed) - needed when a recipe targets an older
+            # Bioconductor release, because strict channel priority would
+            # otherwise force our newer rebuilds on it.
+            CHANNELS=(
+              --channel "$(pwd)/output"
+              --channel https://prefix.dev/almost-conductor
+              --channel conda-forge
+              --channel bioconda
+            )
+            if [ -f "recipes/$recipe/channels.txt" ]; then
+              CHANNELS=()
+              while read -r c; do
+                case "$c" in ''|\#*) continue ;; esac
+                CHANNELS+=(--channel "$c")
+              done < "recipes/$recipe/channels.txt"
+              echo "Using recipe-specific channels: ${CHANNELS[*]}"
+            fi
+
             rattler-build build \
               --recipe "recipes/$recipe/recipe.yaml" \
               --output-dir output \
-              --channel "$(pwd)/output" \
-              --channel https://prefix.dev/almost-conductor \
-              --channel conda-forge \
-              --channel bioconda \
+              "${CHANNELS[@]}" \
               --target-platform "${{ matrix.platform.target }}"
 
             local status=$?
