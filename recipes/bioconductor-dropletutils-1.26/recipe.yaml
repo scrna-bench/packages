@@ -1,0 +1,112 @@
+# Bioconductor 3.20 / R 4.4 build of DropletUtils.
+# bioconda ships 1.26.0 for linux-64, linux-aarch64 and osx-64 only, so this is
+# the one package blocking a native osx-arm64 solve of the pipelines-plan
+# r_osta environment (envs/r_osta.yml, scrna-bench/pipelines-plan).
+# The sibling recipes/bioconductor-dropletutils is the 3.22 / R 4.5 build.
+context:
+  name: bioconductor-dropletutils
+  version: "1.26.0"
+  bioc: "3.20"
+
+package:
+  name: ${{ name }}
+  version: ${{ version }}
+
+source:
+  url: https://bioconductor.org/packages/${{ bioc }}/bioc/src/contrib/DropletUtils_${{ version }}.tar.gz
+  sha256: 5db6870517a2398181f9088804da8edbf5bea6cd498d137943063226ff85a918
+
+build:
+  number: 0
+  skip:
+    - win
+  script:
+    # bioconda ships GenomeInfoDbData as a post-link download, and rattler-build
+    # does not run post-link scripts - so GenomeInfoDb fails to load during
+    # DropletUtils' byte-compile step. Run it by hand. Bioc >=3.21 drops this
+    # dependency, which is why the sibling 3.22 recipe does not need it.
+    - .bioconductor-genomeinfodbdata-post-link.sh
+    - R CMD INSTALL --build .
+
+requirements:
+  host:
+    - bioconductor-biocgenerics >=0.52.0,<0.53.0
+    - bioconductor-beachmat >=2.22.0,<2.23.0
+    - bioconductor-biocparallel >=1.40.0,<1.41.0
+    - bioconductor-delayedarray >=0.32.0,<0.33.0
+    - bioconductor-delayedmatrixstats >=1.28.0,<1.29.0
+    - bioconductor-edger >=4.4.0,<4.5.0
+    - bioconductor-genomicranges >=1.58.0,<1.59.0
+    - bioconductor-genomeinfodbdata
+    - bioconductor-hdf5array >=1.34.0,<1.35.0
+    - bioconductor-iranges >=2.40.0,<2.41.0
+    - bioconductor-rhdf5 >=2.50.0,<2.51.0
+    - bioconductor-rhdf5lib >=1.28.0,<1.29.0
+    - bioconductor-s4vectors >=0.44.0,<0.45.0
+    - bioconductor-scuttle >=1.16.0,<1.17.0
+    - bioconductor-singlecellexperiment >=1.28.0,<1.29.0
+    - bioconductor-sparsearray >=1.6.0,<1.7.0
+    - bioconductor-summarizedexperiment >=1.36.0,<1.37.0
+    - r-base >=4.4,<4.5
+    - r-bh
+    - r-dqrng
+    - r-matrix
+    - r-r.utils
+    - r-rcpp
+    - libblas
+    - liblapack
+    - zlib
+  run:
+    - bioconductor-biocgenerics >=0.52.0,<0.53.0
+    - bioconductor-beachmat >=2.22.0,<2.23.0
+    - bioconductor-biocparallel >=1.40.0,<1.41.0
+    - bioconductor-delayedarray >=0.32.0,<0.33.0
+    - bioconductor-delayedmatrixstats >=1.28.0,<1.29.0
+    - bioconductor-edger >=4.4.0,<4.5.0
+    - bioconductor-genomicranges >=1.58.0,<1.59.0
+    - bioconductor-genomeinfodbdata
+    - bioconductor-hdf5array >=1.34.0,<1.35.0
+    - bioconductor-iranges >=2.40.0,<2.41.0
+    - bioconductor-rhdf5 >=2.50.0,<2.51.0
+    - bioconductor-rhdf5lib >=1.28.0,<1.29.0
+    - bioconductor-s4vectors >=0.44.0,<0.45.0
+    - bioconductor-scuttle >=1.16.0,<1.17.0
+    - bioconductor-singlecellexperiment >=1.28.0,<1.29.0
+    - bioconductor-sparsearray >=1.6.0,<1.7.0
+    - bioconductor-summarizedexperiment >=1.36.0,<1.37.0
+    - r-base >=4.4,<4.5
+    - r-bh
+    - r-dqrng
+    - r-matrix
+    - r-r.utils
+    - r-rcpp
+    - libblas
+    - liblapack
+    - zlib
+
+tests:
+  - script:
+    - Rscript -e "library('DropletUtils')"
+  - script:
+    # read10xCounts is what datasets/run.R calls for the be1 dataset
+    - Rscript -e "library('DropletUtils'); stopifnot(packageVersion('DropletUtils') == '1.26.0'); stopifnot(is.function(read10xCounts))"
+
+about:
+  homepage: https://bioconductor.org/packages/release/bioc/html/DropletUtils.html
+  summary: DropletUtils Bioconductor package (Bioconductor 3.20 build)
+  description: |
+    Provides a number of utility functions for handling single-cell (RNA-seq) data
+    from droplet technologies such as 10X Genomics. This includes data loading
+    from count matrices or molecule information files, identification of cells
+    from empty droplets, removal of barcode-swapped pseudo-cells, and downsampling
+    of the count matrix.
+  license: GPL-3.0-only
+  repository: https://bioconductor.org/packages/DropletUtils/
+  documentation: https://bioconductor.org/packages/release/bioc/html/DropletUtils.html
+
+extra:
+  recipe-maintainers:
+    - markrobinsonuzh
+  bioconductor:
+    package: DropletUtils
+    version: 3.20

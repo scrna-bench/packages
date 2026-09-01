@@ -1,0 +1,6 @@
+# Bioconductor 3.20 build: almost-conductor carries 3.22/3.23 rebuilds of
+# rhdf5, rhdf5filters, rhdf5lib, edger and sparsearray, and strict channel
+# priority would exclude bioconda's 3.20 versions of those names entirely.
+# None of this recipe's dependencies come from almost-conductor.
+conda-forge
+bioconda
