@@ -16,30 +16,39 @@ source:
 
 build:
   number: 0
-  # CUDA build: linux-64 only. Upstream ships no Windows GPU path and macOS has
-  # no CUDA at all.
+  # linux-64 gets the CUDA build (RcppML_gpu.so); osx gets a CPU-only build of
+  # the same source, which is all `resource = "cpu"` ever needs. Upstream ships
+  # no Windows GPU path and the CPU build there is untested, so win stays out.
   skip:
-    - not linux
+    - win
   script: build.sh
 
 requirements:
   build:
     - ${{ compiler('c') }}
     - ${{ compiler('cxx') }}
-    # 12.8 is the newest toolkit that accepts conda-forge's default gcc.
-    - cuda-nvcc 12.8.*
     - make
+    - if: linux
+      then:
+        # 12.8 is the newest toolkit that accepts conda-forge's default gcc.
+        - cuda-nvcc 12.8.*
   host:
     - r-base 4.5.*
     - r-matrix
     - r-rcpp
     - r-rcppeigen
-    - cuda-version 12.8.*
-    - cuda-cudart-dev
-    - cuda-driver-dev   # libcuda.so stub; the real driver comes from the host
-    - libcublas-dev
-    - libcusparse-dev
-    - libcusolver-dev
+    - if: linux
+      then:
+        - cuda-version 12.8.*
+        - cuda-cudart-dev
+        - cuda-driver-dev   # libcuda.so stub; the real driver comes from the host
+        - libcublas-dev
+        - libcusparse-dev
+        - libcusolver-dev
+    - if: osx
+      then:
+        # RcppML parallelises with OpenMP; Apple clang has no libomp of its own.
+        - llvm-openmp
   run:
     - r-base
     - r-matrix
@@ -48,12 +57,25 @@ requirements:
 tests:
   - script:
       - R -e "library('RcppML'); stopifnot(packageVersion('RcppML') >= '1.0.0')"
-      # The whole point of this recipe: without it we ship a CPU-only build that
-      # silently falls back. gpu_available() is FALSE on a GPU-less builder, so
-      # assert on the artifact instead.
-      - R -e "p <- system.file('lib', 'RcppML_gpu.so', package = 'RcppML'); stopifnot(nzchar(p)); cat(p, '\n')"
       - R -e "cat(readLines(system.file('build_config', package = 'RcppML')), sep = '\n')"
-      - R -e "stopifnot(isFALSE(RcppML::gpu_available()) || isTRUE(RcppML::gpu_available()))"
+      # The CPU solvers are the portable contract: this is what pc-rcppml calls.
+      # svd() returns an S4 object, so the slot is @d, not $d -- and the whole
+      # expression is single-quoted so bash does not eat an @ or a $.
+      - R -e 'm <- abs(Matrix::rsparsematrix(200, 120, 0.1)); s <- RcppML::svd(m, k = 5, method = "lanczos", resource = "cpu"); stopifnot(length(s@d) == 5L)'
+  - if: linux
+    then:
+      script:
+        # The whole point of the linux recipe: without it we ship a CPU-only build
+        # that silently falls back. gpu_available() is FALSE on a GPU-less builder,
+        # so assert on the artifact instead.
+        - R -e "p <- system.file('lib', 'RcppML_gpu.so', package = 'RcppML'); stopifnot(nzchar(p)); cat(p, '\n')"
+        - R -e "stopifnot(isFALSE(RcppML::gpu_available()) || isTRUE(RcppML::gpu_available()))"
+  - if: osx
+    then:
+      script:
+        # Inverse assertion: no CUDA here, and the package must say so rather
+        # than warn-and-fall-back at runtime.
+        - R -e "stopifnot(isFALSE(RcppML::gpu_available()))"
 
 about:
   homepage: https://github.com/zdebruine/RcppML
@@ -66,10 +88,13 @@ about:
     solvers, multiple distribution-based losses via IRLS, and L1/L2/L21/angular
     /graph-Laplacian regularization.
 
-    This build is compiled against the CUDA toolkit and ships the optional
-    RcppML_gpu.so bridge, so `resource = "gpu"` actually runs on a GPU instead
-    of warning and falling back to the CPU. On a host without a CUDA driver the
-    bridge simply fails to load and `gpu_available()` returns FALSE — every CPU
-    code path still works.
+    The linux-64 build is compiled against the CUDA toolkit and ships the
+    optional RcppML_gpu.so bridge, so `resource = "gpu"` actually runs on a GPU
+    instead of warning and falling back to the CPU. On a host without a CUDA
+    driver the bridge simply fails to load and `gpu_available()` returns FALSE —
+    every CPU code path still works.
+
+    The osx builds are CPU-only: macOS has no CUDA at all, so the bridge is not
+    built and `gpu_available()` is always FALSE. Every CPU solver is identical.
   license: GPL-3.0-or-later
   repository: https://github.com/zdebruine/RcppML
