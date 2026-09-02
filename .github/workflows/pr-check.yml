@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  RATTLER_BUILD_VERSION: "0.31.1"  # keep in sync with build.yml — no point validating on a different builder than the one that publishes
+  RATTLER_BUILD_VERSION: "0.42.1"  # keep in sync with build.yml — no point validating on a different builder than the one that publishes
 
 jobs:
   validate-recipes:

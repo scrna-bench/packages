@@ -14,7 +14,7 @@ on:
         type: string
 
 env:
-  RATTLER_BUILD_VERSION: "0.31.1"
+  RATTLER_BUILD_VERSION: "0.42.1"
 
 jobs:
   detect-changes:
