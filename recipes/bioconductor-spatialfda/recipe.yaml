@@ -1,6 +1,6 @@
 context:
-  version: "1.5.1"
-  commit: "0a191f40c488ed4bd259f81815aa156dfb487389"
+  version: "1.5.2"
+  commit: "1b1c9d6f6dbf61535d3ff1a4118cc0011e03dc58"
 
 package:
   name: bioconductor-spatialfda
@@ -10,7 +10,7 @@ source:
   #this is currently the newest build from github
   #once this is reflected in bioconductor.org we might update the URL
   url: https://github.com/mjemons/spatialFDA/archive/${{ commit }}.tar.gz
-  sha256: b62cc0c63639f22cd8e4fa15c27be06c70c089d9a08326c43e37099c84162474
+  sha256: 8e55196946f505348455c5e304badd45bd3ee9b89354ca9fc4fd2936b58d2d9e
 
 build:
   number: 0
